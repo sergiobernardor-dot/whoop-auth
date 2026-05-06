@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHOOP OAuth Callback</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 2.5rem;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    .icon { font-size: 48px; margin-bottom: 1rem; }
+    h1 { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .status { font-size: 14px; color: #444; line-height: 1.6; margin-bottom: 1.5rem; }
+    .code-box {
+      background: #f5f5f5;
+      border: 2px solid #1D9E75;
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      word-break: break-all;
+      font-family: 'Monaco', 'Courier', monospace;
+      font-size: 12px;
+      color: #1a1a1a;
+      font-weight: 500;
+    }
+    .button {
+      display: inline-block;
+      background: #1D9E75;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0.5rem;
+      transition: background 0.2s;
+    }
+    .button:hover { background: #0F6E56; }
+    .button.secondary {
+      background: transparent;
+      color: #1D9E75;
+      border: 2px solid #1D9E75;
+    }
+    .button.secondary:hover { background: #f0f0f0; }
+    .error { background: #FCEBEB; border-color: #F09595; color: #A32D2D; }
+    .success { background: #EAF3DE; border-color: #97C459; color: #3B6D11; }
+    .loading { color: #888; }
+    .next-steps {
+      background: #E1F5EE;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      text-align: left;
+      font-size: 12px;
+      color: #0F6E56;
+    }
+    .next-steps h3 { margin-bottom: 0.5rem; font-size: 13px; }
+    .next-steps ol { margin-left: 1.2rem; }
+    .next-steps li { margin-bottom: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🔐</div>
+    <h1 id="title">Autorizando...</h1>
+    <p class="subtitle" id="subtitle">Capturando tu código de autorización</p>
+    
+    <div class="status" id="status" style="display: none;">
+      <p id="status-text"></p>
+    </div>
+
+    <div id="code-section" style="display: none;">
+      <p style="font-size: 13px; color: #666; margin-bottom: 0.8rem;">
+        Tu código de autorización:
+      </p>
+      <div class="code-box" id="code-display">Cargando...</div>
+      <p style="font-size: 12px; color: #888; margin: 1rem 0;">
+        ✅ Código copiado automáticamente al portapapeles
+      </p>
+      <button class="button" onclick="copyCode()">📋 Copiar código</button>
+      <button class="button secondary" onclick="goToNextStep()">Continuar al siguiente paso →</button>
+    </div>
+
+    <div id="error-section" style="display: none;">
+      <p style="font-size: 13px; color: #A32D2D; margin-bottom: 1rem;" id="error-text"></p>
+      <button class="button secondary" onclick="location.href='https://developer.whoop.com'">
+        Volver al Developer Portal
+      </button>
+    </div>
+
+    <div id="next-steps-section" class="next-steps" style="display: none;">
+      <h3>📋 Próximo paso:</h3>
+      <ol>
+        <li>Ve a <strong>Postman</strong> o abre tu terminal</li>
+        <li>Haz un POST a: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px;">https://api.prod.whoop.com/oauth/oauth2/token</code></li>
+        <li>Con estos datos:
+          <div style="background: rgba(0,0,0,0.05); padding: 0.5rem; border-radius: 4px; margin-top: 0.4rem; font-size: 11px; overflow-x: auto;">
+            grant_type: authorization_code<br/>
+            code: <strong id="code-for-token">[tu código]</strong><br/>
+            client_id: <strong>319c9038-8de1-4293-a6ca-a791a9741597</strong><br/>
+            client_secret: <strong>[tu secret]</strong>
+          </div>
+        </li>
+        <li>Recibirás tu <strong>access_token</strong> ✅</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    function copyCode() {
+      const code = document.getElementById('code-display').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target;
+        const original = btn.textContent;
+        btn.textContent = '✓ Copiado';
+        setTimeout(() => { btn.textContent = original; }, 2000);
+      });
+    }
+
+    function goToNextStep() {
+      document.getElementById('code-section').style.display = 'none';
+      document.getElementById('next-steps-section').style.display = 'block';
+      document.getElementById('title').textContent = 'Casi listo 🎯';
+      document.getElementById('subtitle').textContent = 'Solo falta un paso más';
+    }
+
+    window.addEventListener('load', () => {
+      const code = getQueryParam('code');
+      const error = getQueryParam('error');
+
+      if (code) {
+        document.getElementById('title').textContent = '¡Éxito! ✅';
+        document.getElementById('subtitle').textContent = 'Código de autorización capturado';
+        document.getElementById('code-display').textContent = code;
+        document.getElementById('code-for-token').textContent = code;
+        document.getElementById('code-section').style.display = 'block';
+        
+        navigator.clipboard.writeText(code).catch(err => {
+          console.log('Clipboard copy failed, but code is visible');
+        });
+      } else if (error) {
+        const errorDesc = getQueryParam('error_description') || error;
+        document.getElementById('title').textContent = 'Error 😞';
+        document.getElementById('subtitle').textContent = 'No se pudo autorizar';
+        document.getElementById('error-text').textContent = `Error: ${errorDesc}`;
+        document.getElementById('error-section').style.display = 'block';
+      } else {
+        document.getElementById('title').textContent = 'Esperando...';
+        document.getElementById('subtitle').textContent = 'No se recibió ningún código';
+        document.getElementById('status').style.display = 'block';
+        document.getElementById('status-text').innerHTML = '❓ Si llegaste aquí directamente, ve al Developer Portal de WHOOP y autoriza la aplicación.';
+      }
+    });
+  </script>
+</body>
+</html>
